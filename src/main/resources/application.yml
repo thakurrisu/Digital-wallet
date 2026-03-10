@@ -1,0 +1,142 @@
+# ================================================================
+# APPLICATION CONFIGURATION
+# Digital Wallet ? Development Profile
+# ================================================================
+
+server:
+  port: 8080
+  # WHY: Explicit is better than relying on defaults.
+  # When you add multiple services later, port conflicts
+  # are debugged in 2 seconds not 2 hours.
+
+  servlet:
+    context-path: /api
+    # WHY: All your URLs are now /api/v1/...
+    # Separates API from any static resources.
+    # Easy to route in Nginx/gateway later.
+
+# ================================================================
+# SPRING CORE CONFIGURATION
+# ================================================================
+spring:
+  jackson:
+    time-zone: UTC
+    # WHY UTC: ALWAYS store and transmit in UTC.
+    # Convert to user's timezone in frontend.
+    # Mixing timezones in backend = nightmare bugs.
+  application:
+    name: digital-wallet
+    # WHY: Used in logs, distributed tracing, service discovery.
+    # Good habit even in monolith ? logs will show app name.
+
+  # ================================================================
+  # DATABASE ? PostgreSQL
+  # ================================================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/digital_wallet
+    username: wallet_user
+    password: wallet_pass
+    driver-class-name: org.postgresql.Driver
+
+    # Connection Pool ? HikariCP (Spring Boot default, best in class)
+    hikari:
+      pool-name: WalletHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000       # 5 minutes
+      connection-timeout: 20000  # 20 seconds
+      # WHY HIKARI:
+      # Every DB operation doesn't open a new connection.
+      # Opening connections is expensive (~200ms each).
+      # Pool keeps 5-10 connections warm and ready.
+      # At 1000 req/sec without pool = 1000 DB connections = DB dies.
+      # With pool = max 10 connections, requests queue safely.
+
+  # ================================================================
+  # JPA + HIBERNATE
+  # ================================================================
+  jpa:
+    hibernate:
+      ddl-auto: update
+      # WHY 'update' not 'create-drop':
+      # create-drop: DELETES all tables on restart. Your data vanishes.
+      # update: Adds new columns/tables, never deletes existing data.
+      # validate: Only checks schema matches entities, no changes.
+      # none: Hibernate does nothing, you manage schema manually (production).
+      #
+      # For now 'update' is fine. Phase 5 we introduce Flyway
+      # for proper migration management.
+
+    show-sql: true
+    # WHY: You see exact SQL Hibernate generates.
+    # Critical for learning ? you'll understand what JPA
+    # is doing under the hood. Disable in production.
+
+    properties:
+      hibernate:
+        format_sql: true
+        # WHY: SQL prints formatted, not on one unreadable line.
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # WHY explicit dialect: Hibernate generates PostgreSQL-specific
+        # SQL optimizations. Without it, falls back to generic SQL.
+
+    open-in-view: false
+    # WHY FALSE ? this is important:
+    # Default is TRUE which keeps DB session open for entire HTTP request.
+    # Sounds helpful but causes N+1 query problems silently.
+    # FALSE forces you to load what you need in service layer.
+    # Spring Boot even logs a WARNING when this is true.
+
+  # ================================================================
+  # JACKSON ? JSON Serialization
+  # ================================================================
+
+
+# ================================================================
+# JWT CONFIGURATION
+# ================================================================
+  jwt:
+   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  # WHY this format: HS256 requires minimum 256-bit key.
+  # This is a hex-encoded 256-bit key.
+  # IN PRODUCTION: Never hardcode. Use environment variables:
+  # secret: ${JWT_SECRET}
+  # Then set JWT_SECRET in your server environment.
+
+  expiration: 86400000
+  # WHY: 86400000ms = 24 hours.
+  # Short enough to limit damage if token stolen.
+  # Long enough for normal user session.
+  # Production: 15 minutes + refresh token pattern.
+
+  refresh-expiration: 604800000
+  # WHY: 7 days for refresh token.
+  # We'll implement this in Phase 5.
+
+# ================================================================
+# LOGGING
+# ================================================================
+logging:
+  level:
+    com.digitalwallet: DEBUG
+    # WHY: Your own code logs at DEBUG level.
+    # You see everything during development.
+
+    org.springframework.security: DEBUG
+    # WHY: Security filter decisions are visible.
+    # "Granting access" / "Denying access" shown in logs.
+    # DISABLE this in production ? security internals are noisy.
+
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    # WHY: Shows SQL + the actual parameter values bound.
+    # Without BasicBinder you see: WHERE id = ?
+    # With it you see: WHERE id = 'abc-123'
+    # Disable in production ? logs sensitive data.
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    # WHY: Timestamp + thread + level + class + message.
+    # When debugging concurrent issues (our transfer logic),
+    # thread name tells you which request was which.
+
