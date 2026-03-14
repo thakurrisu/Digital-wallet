@@ -15,7 +15,7 @@ public class ApiResponse<T> {
     private final T data;
 
     //200 - with success and data
-    public ApiResponse<T> ok(String message ,T data){
+    public static<T> ApiResponse<T> ok(String message ,T data){
        return  ApiResponse.<T>builder()
                .message(message)
                .data(data)
@@ -23,7 +23,7 @@ public class ApiResponse<T> {
                .timestamp(LocalDateTime.now()).build();
     }
 
-    public ApiResponse<T> ok(String message){
+    public static<T> ApiResponse<T> ok(String message){
         return  ApiResponse.<T>builder()
                 .message(message)
                 .data(null)
@@ -31,7 +31,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-    public ApiResponse<Void> error(String message){
+    public static<T> ApiResponse<Void> error(String message){
         return  ApiResponse.<Void>builder()
                 .message(message)
                 .data(null)

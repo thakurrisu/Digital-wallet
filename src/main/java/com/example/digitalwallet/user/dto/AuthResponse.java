@@ -12,7 +12,7 @@ public class AuthResponse {
 
     private String tokenType;
 
-    private long expiresIn;
+   // private long expiresIn;
 
     private UserResponse user;
 

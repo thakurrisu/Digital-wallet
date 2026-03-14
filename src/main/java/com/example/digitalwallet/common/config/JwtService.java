@@ -31,7 +31,7 @@ public class JwtService {
                 hexStringToByteArray(SECRET_HEX));
     }
 
-   private String generateToken(UUID id, String email){
+   public String generateToken(UUID id, String email){
        Date issuedAt = new Date();
        Date expiry = new Date(issuedAt.getTime() + JWT_EXPIRATION);
        return Jwts.builder()
