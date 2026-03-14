@@ -54,7 +54,7 @@ public class SecurityConfig {
     // Keeping them here makes it obvious what's public.
     // Easy to add new public routes in one place.
     private static final String[] PUBLIC_ROUTES = {
-            "/api/v1/auth/**",
+            "/v1/auth/**",
             // WHY **?
             // Matches any path after /auth/
             // /auth/login, /auth/register, /auth/refresh
