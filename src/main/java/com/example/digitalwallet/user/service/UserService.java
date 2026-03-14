@@ -2,6 +2,7 @@ package com.example.digitalwallet.user.service;
 
 import com.example.digitalwallet.common.ApiResponse;
 import com.example.digitalwallet.user.dto.*;
+import com.example.digitalwallet.user.model.User;
 
 import java.util.UUID;
 
@@ -23,7 +24,7 @@ public interface UserService {
     ApiResponse<Void> logout();
 
     //get user by id
-    UserResponse getUserById(UUID id);
+    User getUserById(UUID id);
 
     //delete
     ApiResponse<Void> delete(UUID id);
