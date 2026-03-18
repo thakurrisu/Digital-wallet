@@ -68,6 +68,12 @@ public class WalletServiceImpl implements WalletService{
 
     }
 
+    public WalletResponse withdraw(UUID userId , BigDecimal amount){
+        UUID walletId = walletRepository.findByUserId(userId).get().getId();
+        credit(walletId,amount);
+        return WalletResponse.fromWallet(walletRepository.findById(walletId).get());
+    }
+
     @Override
     public void credit(UUID walletId, BigDecimal amount) {
         validate(amount);
@@ -87,6 +93,12 @@ public class WalletServiceImpl implements WalletService{
     private void validate(BigDecimal amount) {
         if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
             throw new WalletException(ErrorCode.INVALID_AMOUNT);
+    }
+
+    public WalletResponse deposit(UUID userId , BigDecimal amount){
+        UUID walletId = walletRepository.findByUserId(userId).get().getId();
+        debit(walletId,amount);
+        return WalletResponse.fromWallet(walletRepository.findById(walletId).get());
     }
 
     @Override
