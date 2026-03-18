@@ -25,5 +25,5 @@ public interface WalletService {
     void debit(UUID wallteId,BigDecimal amount);
 
     //freeze
-    void freezeWallet(UUID walletId);
+    WalletResponse freezeWallet(UUID userId);
 }

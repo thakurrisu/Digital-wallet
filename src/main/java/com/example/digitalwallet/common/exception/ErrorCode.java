@@ -12,9 +12,12 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("USR_003", "Invalid credentials", HttpStatus.UNAUTHORIZED),
 
     // Wallet
+    // Wallet errors
     WALLET_NOT_FOUND("WLT_001", "Wallet not found", HttpStatus.NOT_FOUND),
     WALLET_INACTIVE("WLT_002", "Wallet is not active", HttpStatus.FORBIDDEN),
-    INSUFFICIENT_FUNDS("WLT_003", "Insufficient funds", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_FUNDS("WLT_003", "Insufficient funds in wallet", HttpStatus.BAD_REQUEST),
+    WALLET_ALREADY_EXISTS("WLT_004", "Wallet already exists for this user", HttpStatus.CONFLICT),
+
 
     // Transaction
     TRANSACTION_NOT_FOUND("TXN_001", "Transaction not found", HttpStatus.NOT_FOUND),

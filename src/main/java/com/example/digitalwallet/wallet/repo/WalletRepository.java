@@ -17,7 +17,7 @@ public interface WalletRepository extends JpaRepository<Wallet, UUID> {
 
     Optional<Wallet> findByUserId(UUID userId);
 
-    Optional<Wallet> findByIdAndWalletStatus(UUID id, WalletStatus walletStatus);
+   // Optional<Wallet> findByIdAndWalletStatus(UUID id, WalletStatus walletStatus);
 
     @Modifying
     @Query("UPDATE Wallet w SET w.balance = w.balance + :amount " +
@@ -49,4 +49,6 @@ public interface WalletRepository extends JpaRepository<Wallet, UUID> {
     @Modifying
     @Query("UPDATE Wallet w SET w.walletStatus = :status WHERE w.user.id = :userid")
     void updateWalletStatus(@Param("userid") UUID id, @Param("status") WalletStatus status);
+
+    Optional<Wallet> findByUserIdAndStatus(UUID userId, WalletStatus walletStatus);
 }
