@@ -75,7 +75,8 @@ public class Transaction {
     @Builder.Default
     private String currency ="INR";
 
-
+    @Column(length = 250)
+    private String description;
 
     @CreationTimestamp
     @Column(name = "created_at",
