@@ -43,9 +43,9 @@ public class UserController {
     }
     //get profile
     @GetMapping("/users/me")
-    public ResponseEntity<ApiResponse<User>> getProfile(@AuthenticationPrincipal UUID userID){
+    public ResponseEntity<ApiResponse<UserResponse>> getProfile(@AuthenticationPrincipal UUID userID){
         User user = userService.getUserById(userID);
-        return ResponseEntity.ok(ApiResponse.ok(user));
+        return ResponseEntity.ok(ApiResponse.ok(UserResponse.fromUser(user)));
     }
 
     //updateprofile

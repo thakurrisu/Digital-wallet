@@ -53,7 +53,7 @@ public class WalletServiceImpl implements WalletService{
     @Transactional(readOnly = true)
     public Wallet getActiveWalletByUserId(UUID userId) {
         return walletRepository
-                .findByUserIdAndStatus(userId, WalletStatus.ACTIVE)
+                .findByUserIdAndWalletStatus(userId, WalletStatus.ACTIVE)
                 .orElseThrow(() -> {
                     // WHY check if wallet exists to give better error?
                     // If wallet exists but inactive → WALLET_INACTIVE

@@ -50,5 +50,5 @@ public interface WalletRepository extends JpaRepository<Wallet, UUID> {
     @Query("UPDATE Wallet w SET w.walletStatus = :status WHERE w.user.id = :userid")
     void updateWalletStatus(@Param("userid") UUID id, @Param("status") WalletStatus status);
 
-    Optional<Wallet> findByUserIdAndStatus(UUID userId, WalletStatus walletStatus);
+    Optional<Wallet> findByUserIdAndWalletStatus(UUID userId, WalletStatus walletStatus);
 }

@@ -86,8 +86,8 @@ public class UserServiceImpl implements UserService{
         if(StringUtils.hasText(request.getEmail())) {
             String newEmail = request.getEmail().trim();
             if (!newEmail.equals(user.getEmail())) {
-                if (userRepository.existsByEmail(newEmail)) ;
-                throw new WalletException(ErrorCode.USER_ALREADY_EXISTS);
+                if (userRepository.existsByEmail(newEmail))
+                    throw new WalletException(ErrorCode.USER_ALREADY_EXISTS);
             }
             user.setEmail(newEmail);
         }
