@@ -26,4 +26,7 @@ public interface WalletService {
 
     //freeze
     WalletResponse freezeWallet(UUID userId);
+
+    //get wallet by ID
+    Wallet getActiveWalletById(UUID walletId);
 }

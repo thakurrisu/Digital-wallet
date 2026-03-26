@@ -134,4 +134,11 @@ public class WalletServiceImpl implements WalletService{
                throw new WalletException(ErrorCode.WALLET_INACTIVE,"Wallet already freezed");
            }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Wallet getActiveWalletById(UUID walletId) {
+        return walletRepository.findById(walletId).filter(w -> w.getWalletStatus() == WalletStatus.ACTIVE)
+                .orElseThrow(()-> new WalletException(ErrorCode.WALLET_INACTIVE,"Active Wallet Not Found : " + walletId) );
+    }
 }
