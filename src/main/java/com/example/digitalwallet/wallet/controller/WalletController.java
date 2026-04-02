@@ -27,20 +27,21 @@ public class WalletController {
         return ResponseEntity.ok(ApiResponse.ok(walletResponse));
     }
 
-    //Post - Credit ("/v1/wallet/credit)
-    @PostMapping("/v1/wallet/credit")
+    //Only till transaction was not created
+ /*   //Post - Credit ("/v1/wallet/credit)
+    @PostMapping("/credit")
     public ResponseEntity<ApiResponse<WalletResponse>> credit(@AuthenticationPrincipal UUID userId , @RequestBody BigDecimal amount){
             return ResponseEntity.ok(ApiResponse.ok(walletService.withdraw(userId,amount)));
     }
 
     //Post - Debit ("/v1/wallet/debit)
-    @PostMapping("/v1/wallet/debit")
+    @PostMapping("/debit")
     public ResponseEntity<ApiResponse<WalletResponse>> debit(@AuthenticationPrincipal UUID userId , @RequestBody BigDecimal amount){
         return ResponseEntity.ok(ApiResponse.ok(walletService.deposit(userId,amount)));
-    }
+    }*/
 
     //path - Freeze("/v1/wallet/freeze)
-    @PatchMapping("/v1/wallet/freeze")
+    @PatchMapping("/freeze")
     public ResponseEntity<ApiResponse<WalletResponse>> freeze(@AuthenticationPrincipal UUID userId){
         return ResponseEntity.ok(ApiResponse.ok(walletService.freezeWallet(userId)));
     }

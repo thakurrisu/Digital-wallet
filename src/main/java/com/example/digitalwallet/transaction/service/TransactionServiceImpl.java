@@ -58,9 +58,13 @@ public class TransactionServiceImpl implements TransactionService{
 
         //TO DO throw exception and see what happens
 
-        //get sanpshot after
-        Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
-        BigDecimal balance_after = wallet.getBalance();
+        // TODO Phase 5:
+        // Replace mathematical balanceAfter with:
+        // entityManager.flush() + entityManager.clear()
+        // then refetch wallet for accurate snapshot
+        // under concurrent transactions
+       // Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
+        BigDecimal balance_after = balance_before.add(depReq.getAmount());
         Transaction transaction =buildTransaction(wallet,depReq.getAmount(),TransactionStatus.PENDING,balance_before,balance_after,
                 TransactionType.DEPOSIT,refId,"Deposit",null);
         transactionRepo.save(transaction);
@@ -97,8 +101,8 @@ public class TransactionServiceImpl implements TransactionService{
         walletService.debit(senderWallet.getId(),amount);
         walletService.credit(depReq.getReceiverWalletId(),depReq.getAmount());
 
-        BigDecimal senderWallet_After = walletService.getActiveWalletByUserId(userId).getBalance();
-        BigDecimal receiverWallet_After = walletService.getActiveWalletByUserId(depReq.getReceiverWalletId()).getBalance();
+        BigDecimal senderWallet_After = receiverWallet_Before.subtract(depReq.getAmount());
+        BigDecimal receiverWallet_After = receiverWallet_Before.add(depReq.getAmount());
 
         Transaction transaction_out =buildTransaction(senderWallet,depReq.getAmount(),TransactionStatus.PENDING,senderWallet_Before,senderWallet_After,
                 TransactionType.TRANSFER_OUT,refId,"Credit",depReq.getReceiverWalletId());
@@ -132,8 +136,8 @@ public class TransactionServiceImpl implements TransactionService{
         //TO DO : throw exception and see what happens
 
         //get sanpshot after
-        Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
-        BigDecimal balance_after = wallet.getBalance();
+       // Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
+        BigDecimal balance_after = balance_before.subtract(depReq.getAmount());
         Transaction transaction =buildTransaction(wallet,depReq.getAmount(),TransactionStatus.PENDING,balance_before,balance_after,
                 TransactionType.WITHDRAW,refId,"credit",null);
         transactionRepo.save(transaction);

@@ -9,10 +9,12 @@ import com.example.digitalwallet.user.dto.*;
 import com.example.digitalwallet.user.model.User;
 import com.example.digitalwallet.user.model.UserStatus;
 import com.example.digitalwallet.user.repo.UserRepository;
+import com.example.digitalwallet.wallet.service.WalletService;
 import jdk.jshell.spi.ExecutionControl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -29,13 +31,17 @@ public class UserServiceImpl implements UserService{
 
     PasswordEncoder pswdEncode;
 
-    public UserServiceImpl(UserRepository userRepository, JwtService jsw, PasswordEncoder pswdEncode) {
+    WalletService walletService;
+
+    public UserServiceImpl(UserRepository userRepository, JwtService jsw, PasswordEncoder pswdEncode , WalletService walletService) {
         this.userRepository = userRepository;
         this.jsw = jsw;
         this.pswdEncode = pswdEncode;
+        this.walletService = walletService;
     }
 
     @Override
+    @Transactional
     public UserResponse register(RegisterRequest request) {
         log.info("Registering user : " + request.getName());
         String email = request.getEmail();
@@ -47,7 +53,7 @@ public class UserServiceImpl implements UserService{
                              .password(pswdEncode.encode(request.getPassword().toLowerCase().trim()))
                                 .build();
             User savedUser = userRepository.save(user);
-
+            walletService.createWallet(savedUser);
             return UserResponse.fromUser(savedUser);
     }
 
@@ -69,7 +75,7 @@ public class UserServiceImpl implements UserService{
 
         String token = jsw.generateToken(
                 user.getId(), user.getEmail());
-
+        log.info("" + user.getId());
         return AuthResponse.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
@@ -130,6 +136,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
+    @Transactional
     public ApiResponse<Void> delete(UUID id) {
         User user = findActiveUserById(id);
 
