@@ -161,8 +161,8 @@ public class TransactionServiceImpl implements TransactionService{
     public Page<TransactionResponse> getTransactionHistory(UUID userId , Pageable pageable) {
         log.info("Fetching transaction history for userId={}", userId);
         WalletResponse wallet = walletService.getWalletByUserId(userId);
-        Page<Transaction> pagedTransaction =  transactionRepo.findByWalletIdOrderByCreatedAtDesc(userId,pageable);
-        return null;
+        Page<Transaction> pagedTransaction =  transactionRepo.findByWalletIdOrderByCreatedAtDesc(wallet.getId(),pageable);
+        return pagedTransaction.map(transaction -> TransactionResponse.fromTransaction(transaction));
     }
 
     private Transaction buildTransaction(Wallet wallet , BigDecimal amount,TransactionStatus transactionStatus
