@@ -59,7 +59,7 @@ public class SecurityConfig {
             // Matches any path after /auth/
             // /auth/login, /auth/register, /auth/refresh
             // all covered by one pattern
-
+            "v1/payment/callback",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -99,18 +99,10 @@ public class SecurityConfig {
 
                 // ROUTE AUTHORIZATION RULES
                 .authorizeHttpRequests(auth -> auth
-
-                                // Public routes — no token needed
                                 .requestMatchers(PUBLIC_ROUTES)
                                 .permitAll()
-                                // permitAll() = allow everyone, authenticated or not
-
-                                // All other routes — must be authenticated
                                 .anyRequest()
                                 .authenticated()
-                        // authenticated() = must have valid authentication
-                        // in SecurityContextHolder (set by JwtAuthFilter)
-                        // If not authenticated → 401 Unauthorized
                 )
 
                 // REGISTER OUR JWT FILTER
