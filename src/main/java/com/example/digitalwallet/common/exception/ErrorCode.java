@@ -1,6 +1,7 @@
 package com.example.digitalwallet.common.exception;
 
 import lombok.Getter;
+import org.json.HTTP;
 import org.springframework.http.HttpStatus;
 
 @Getter
@@ -31,7 +32,11 @@ public enum ErrorCode {
 
     // Generic
     VALIDATION_FAILED("SYS_001", "Validation failed", HttpStatus.BAD_REQUEST),
-    INTERNAL_ERROR("SYS_002", "Internal error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR("SYS_002", "Internal error occurred", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Payment
+    PAYMENT_FAILED("PAY_001", "Order Creation faile",HttpStatus.BAD_REQUEST),
+    PAYMENT_NOT_FOUND("PAY_002", "Payment not found", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String message;
