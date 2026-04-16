@@ -59,7 +59,7 @@ public class SecurityConfig {
             // Matches any path after /auth/
             // /auth/login, /auth/register, /auth/refresh
             // all covered by one pattern
-            "v1/payment/callback",
+            "/v1/payments/callback",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",

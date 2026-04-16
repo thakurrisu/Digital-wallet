@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PaymentRepository extends JpaRepository<PaymentOrder, Long> {
+public interface PaymentRepository extends JpaRepository<PaymentOrder, UUID> {
 
     
     Optional<PaymentOrder> findByGatewayOrderId(String gatewayOrderId);

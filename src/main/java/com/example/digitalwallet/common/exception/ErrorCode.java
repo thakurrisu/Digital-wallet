@@ -35,8 +35,9 @@ public enum ErrorCode {
     INTERNAL_ERROR("SYS_002", "Internal error occurred", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Payment
-    PAYMENT_FAILED("PAY_001", "Order Creation faile",HttpStatus.BAD_REQUEST),
-    PAYMENT_NOT_FOUND("PAY_002", "Payment not found", HttpStatus.NOT_FOUND);
+    PAYMENT_FAILED("PAY_001", "Order Creation failed",HttpStatus.BAD_REQUEST),
+    PAYMENT_NOT_FOUND("PAY_002", "Payment not found", HttpStatus.NOT_FOUND),
+    INVALID_WEBHOOK_SIGNATURE("PAY_003","Webhook signature not valid",HttpStatus.UNAUTHORIZED);
 
     private final String code;
     private final String message;
