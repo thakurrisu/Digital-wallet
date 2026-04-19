@@ -140,3 +140,12 @@ logging:
     # When debugging concurrent issues (our transfer logic),
     # thread name tells you which request was which.
 
+# ================================================================
+# RazorPAY
+# ================================================================
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_SaItQ49nOFoO1W}
+  key-secret: ${RAZORPAY_KEY_SECRET:DvHGrMPAPGtM3kEIJWmYLODj}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:PfCEn37E2_Xnxxe}
+  currency: INR
+
