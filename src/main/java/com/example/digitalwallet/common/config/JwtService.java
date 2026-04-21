@@ -102,4 +102,8 @@ public class JwtService {
     public String extractEmail(String jwt) {
         return extractAllClaims(jwt).get("email", String.class);
     }
+
+    public long getJwtExpiration(String jwt) {
+        return extractAllClaims(jwt).getExpiration().getTime();
+    }
 }

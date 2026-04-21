@@ -23,8 +23,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    private RedisService redisService;
+
+    public JwtAuthFilter(JwtService jwtService ,  RedisService redisService) {
+
         this.jwtService = jwtService;
+        this.redisService = redisService;
     }
 
     @Override
@@ -67,6 +71,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
+        }
+        //check if token is blacklisted
+        if(isTokenBlacklisted(jwt)){
+            log.warn("Blacklisted JWT token for request to: {}",
+                    request.getRequestURI());
+           filterChain.doFilter(request, response);
+           return;
         }
 
         // STEP 4: Token is valid — extract userId
@@ -163,6 +174,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         return null;
     }
+    private Boolean isTokenBlacklisted(String token) {
+        try{
+            return redisService.isTokenBlacklisted(token);
+        } catch(Exception ex){
+            log.error("CRITICAL: Redis unavailable for "
+                    + "blacklist check. Failing open." ,ex.getMessage());
+            return false;
+        }
+
+    }
+
 }
 
 

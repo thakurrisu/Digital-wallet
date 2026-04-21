@@ -37,8 +37,9 @@ public class UserController {
 
     //logout
     @PostMapping("/auth/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(){
-        userService.logout();
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authHeader){
+        String token = authHeader.substring(7);
+        userService.logout(token);
         return ResponseEntity.ok(ApiResponse.ok("Log out Successfull",null));
     }
     //get profile
@@ -58,18 +59,20 @@ public class UserController {
     @PutMapping("/users/me/changePassword")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal UUID userId,
-            @RequestBody @Valid ChangePasswordRequest request) {
-
-        userService.updatePassword(userId, request);
+            @RequestBody @Valid ChangePasswordRequest request, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        userService.updatePassword(userId, request, token);
         return ResponseEntity.ok(
                 ApiResponse.ok("Password changed successfully", null));
     }
 
     @DeleteMapping("/users/me")
     public ResponseEntity<ApiResponse<Void>> deleteUser(
-            @AuthenticationPrincipal UUID userId) {
+            @AuthenticationPrincipal UUID userId , @RequestHeader("Authorization") String authHeader) {
 
+        String token = authHeader.substring(7);
         userService.delete(userId);
+        userService.logout(token);
         return ResponseEntity.ok(
                 ApiResponse.ok("Account deleted", null));
     }

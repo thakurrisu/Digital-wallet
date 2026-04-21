@@ -18,14 +18,14 @@ public interface UserService {
     UserResponse updateProfile(UUID id,UpdateRequest request);
 
     //Update Password
-    UserResponse updatePassword(UUID id,ChangePasswordRequest request);
+    UserResponse updatePassword(UUID id,ChangePasswordRequest request, String token);
 
     //Logout
-    ApiResponse<Void> logout();
+    void logout(String token);
 
     //get user by id
     User getUserById(UUID id);
 
     //delete
-    ApiResponse<Void> delete(UUID id);
+    void delete(UUID id);
 }

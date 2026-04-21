@@ -3,6 +3,7 @@ package com.example.digitalwallet.user.service;
 import com.example.digitalwallet.common.ApiResponse;
 import com.example.digitalwallet.common.config.JwtAuthFilter;
 import com.example.digitalwallet.common.config.JwtService;
+import com.example.digitalwallet.common.config.RedisService;
 import com.example.digitalwallet.common.exception.ErrorCode;
 import com.example.digitalwallet.common.exception.WalletException;
 import com.example.digitalwallet.user.dto.*;
@@ -33,11 +34,14 @@ public class UserServiceImpl implements UserService{
 
     WalletService walletService;
 
-    public UserServiceImpl(UserRepository userRepository, JwtService jsw, PasswordEncoder pswdEncode , WalletService walletService) {
+    RedisService redisService;
+
+    public UserServiceImpl(UserRepository userRepository, JwtService jsw, PasswordEncoder pswdEncode , WalletService walletService , RedisService redisService) {
         this.userRepository = userRepository;
         this.jsw = jsw;
         this.pswdEncode = pswdEncode;
         this.walletService = walletService;
+        this.redisService = redisService;
     }
 
     @Override
@@ -105,7 +109,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public UserResponse updatePassword(UUID id, ChangePasswordRequest request) {
+    public UserResponse updatePassword(UUID id, ChangePasswordRequest request, String token) {
         User user = findActiveUserById(id);
         if(!pswdEncode.matches(request.getCurrentPassword(),user.getPassword())){
             throw new WalletException(ErrorCode.INVALID_CREDENTIALS);
@@ -121,12 +125,15 @@ public class UserServiceImpl implements UserService{
 
         user.setPassword(pswdEncode.encode(request.getCurrentPassword()));
         User updatedUser = userRepository.save(user);
+        logout(token);
         return UserResponse.fromUser(updatedUser);
     }
 
     @Override
-    public ApiResponse<Void> logout() {
-        return null;
+    public void logout(String token) {
+        long remainingTime = calculateRemainingTime(token);
+        if(remainingTime >0)
+            redisService.blacklistToken(token, remainingTime);
     }
 
     @Override
@@ -137,14 +144,16 @@ public class UserServiceImpl implements UserService{
 
     @Override
     @Transactional
-    public ApiResponse<Void> delete(UUID id) {
+    public void delete(UUID id) {
         User user = findActiveUserById(id);
 
         userRepository.softDeleteUser(
                 user.getId(),
                 UserStatus.DELETED,
                 LocalDateTime.now());
-        return null;
+        walletService.freezeWallet(user.getId());
+
+
     }
 
 
@@ -153,5 +162,11 @@ public class UserServiceImpl implements UserService{
                 .findByIdAndIsDeletedFalse(userId)
                 .orElseThrow(() ->
                         new WalletException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private long calculateRemainingTime(String token) {
+        long expirationTime = jsw.getJwtExpiration(token);
+        long remainingTime = Math.max(0,expirationTime - System.currentTimeMillis());
+        return remainingTime;
     }
 }
