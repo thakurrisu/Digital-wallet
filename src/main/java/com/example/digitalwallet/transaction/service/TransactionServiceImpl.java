@@ -1,5 +1,6 @@
 package com.example.digitalwallet.transaction.service;
 
+import com.example.digitalwallet.common.config.RedisService;
 import com.example.digitalwallet.common.exception.ErrorCode;
 import com.example.digitalwallet.common.exception.WalletException;
 import com.example.digitalwallet.transaction.dto.DepositRequest;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,9 +34,16 @@ public class TransactionServiceImpl implements TransactionService{
 
     private final WalletService walletService;
 
-    public TransactionServiceImpl(TransactiontRepository transactionRepo,WalletService walletService) {
+    private final RedisService redisService;
+
+    private static final Duration IdempotencyTimeOut = Duration.ofHours(24);
+
+    private static final Duration LOCK_TTL = Duration.ofSeconds(5);
+
+    public TransactionServiceImpl(TransactiontRepository transactionRepo,WalletService walletService , RedisService redisService) {
         this.transactionRepo = transactionRepo;
         this.walletService=walletService;
+        this.redisService=redisService;
     }
 
     @Override
@@ -42,12 +51,12 @@ public class TransactionServiceImpl implements TransactionService{
         log.info("Deposit request received for userId={}, amount={}, refId={}", userId, depReq.getAmount(), depReq.getReferenceId());
         //check if ref id exist
         String refId = depReq.getReferenceId();
-        Optional<Transaction> existingTransaction = transactionRepo.findByReferenceId(refId);
-        if(existingTransaction.isPresent())
-        {
-            log.info("Duplicate deposit detected for refId={}, returning existing transaction", refId);
-            return TransactionResponse.fromTransaction(existingTransaction.get());
+
+        TransactionResponse idemCheck = checkIdempotency(refId);
+        if(idemCheck!=null){
+            return idemCheck;
         }
+
         //get wallet
         Wallet wallet = walletService.getActiveWalletByUserId(userId);
 
@@ -68,6 +77,7 @@ public class TransactionServiceImpl implements TransactionService{
         Transaction transaction =buildTransaction(wallet,depReq.getAmount(),TransactionStatus.PENDING,balance_before,balance_after,
                 TransactionType.DEPOSIT,refId,"Deposit",null);
         transactionRepo.save(transaction);
+        saveIdempotencyKey(refId);
         log.info("Deposit successful for userId={}, walletId={}, amount={}, balanceBefore={}, balanceAfter={}", userId, wallet.getId(), depReq.getAmount(), balance_before, balance_after);
         return TransactionResponse.fromTransaction(transaction);
     }
@@ -80,10 +90,9 @@ public class TransactionServiceImpl implements TransactionService{
         String refId = depReq.getReferenceId();
         BigDecimal amount = depReq.getAmount();
         //idemcheck
-        var existingTransaction = transactionRepo.findByReferenceId(refId);
-        if(existingTransaction.isPresent()){
-            log.info("Duplicate transfer detected for refId={}, returning existing transaction", refId);
-            return TransactionResponse.fromTransaction(existingTransaction.get());
+        TransactionResponse idemCheck = checkIdempotency(refId);
+        if(idemCheck!=null){
+            return idemCheck;
         }
         //credit from - sender wallet
         //credit from account
@@ -93,37 +102,70 @@ public class TransactionServiceImpl implements TransactionService{
         Wallet receiverWallet = walletService.getActiveWalletById(depReq.getReceiverWalletId());
         BigDecimal receiverWallet_Before = receiverWallet.getBalance();
 
-        if(senderWallet.getId().equals(receiverWallet.getId())){
-            log.info("Self-transfer attempted by userId={}, walletId={}", userId, senderWallet.getId());
-            throw new WalletException(ErrorCode.SELF_TRANSFER);
+        UUID firstLock;
+        UUID secondLock;
+        if (senderWallet.getId().compareTo(
+                receiverWallet.getId()) < 0) {
+            firstLock = senderWallet.getId();
+            secondLock = receiverWallet.getId();
+        } else {
+            firstLock = receiverWallet.getId();
+            secondLock = senderWallet.getId();
         }
-        log.info("Initiating transfer: senderWalletId={}, receiverWalletId={}, amount={}", senderWallet.getId(), receiverWallet.getId(), amount);
-        walletService.debit(senderWallet.getId(),amount);
-        walletService.credit(depReq.getReceiverWalletId(),depReq.getAmount());
 
-        BigDecimal senderWallet_After = receiverWallet_Before.subtract(depReq.getAmount());
-        BigDecimal receiverWallet_After = receiverWallet_Before.add(depReq.getAmount());
+        if (!redisService.acquireLock(
+                firstLock.toString(), LOCK_TTL)) {
+            throw new WalletException(
+                    ErrorCode.WALLET_BUSY,
+                    "Wallet is busy, please retry");
 
-        Transaction transaction_out =buildTransaction(senderWallet,depReq.getAmount(),TransactionStatus.PENDING,senderWallet_Before,senderWallet_After,
-                TransactionType.TRANSFER_OUT,refId,"Credit",depReq.getReceiverWalletId());
+        }
 
-        Transaction transaction_in =buildTransaction(receiverWallet,depReq.getAmount(),TransactionStatus.PENDING,receiverWallet_Before,receiverWallet_After,
-                TransactionType.TRANSFER_IN,refId,"Deposit",senderWallet.getId());
-        transactionRepo.save(transaction_in);
-        transactionRepo.save(transaction_out);
-        log.info("Transfer successful: senderWalletId={} ({}->{}), receiverWalletId={} ({}->{}), amount={}, refId={}", senderWallet.getId(), senderWallet_Before, senderWallet_After, receiverWallet.getId(), receiverWallet_Before, receiverWallet_After, amount, refId);
+        if (!redisService.acquireLock(
+                secondLock.toString(), LOCK_TTL)) {
 
-        return TransactionResponse.fromTransaction(transaction_out);
+            redisService.releaseLock(firstLock.toString());
+            throw new WalletException(
+                    ErrorCode.WALLET_BUSY,
+                    "Wallet is busy, please retry");
+        }
+        try{
+            if(senderWallet.getId().equals(receiverWallet.getId())){
+                log.info("Self-transfer attempted by userId={}, walletId={}", userId, senderWallet.getId());
+                throw new WalletException(ErrorCode.SELF_TRANSFER);
+            }
+
+            log.info("Initiating transfer: senderWalletId={}, receiverWalletId={}, amount={}", senderWallet.getId(), receiverWallet.getId(), amount);
+            walletService.debit(senderWallet.getId(),amount);
+            walletService.credit(depReq.getReceiverWalletId(),depReq.getAmount());
+
+            BigDecimal senderWallet_After = receiverWallet_Before.subtract(depReq.getAmount());
+            BigDecimal receiverWallet_After = receiverWallet_Before.add(depReq.getAmount());
+
+            Transaction transaction_out =buildTransaction(senderWallet,depReq.getAmount(),TransactionStatus.PENDING,senderWallet_Before,senderWallet_After,
+                    TransactionType.TRANSFER_OUT,refId,"Credit",depReq.getReceiverWalletId());
+
+            Transaction transaction_in =buildTransaction(receiverWallet,depReq.getAmount(),TransactionStatus.PENDING,receiverWallet_Before,receiverWallet_After,
+                    TransactionType.TRANSFER_IN,refId,"Deposit",senderWallet.getId());
+            transactionRepo.save(transaction_in);
+            transactionRepo.save(transaction_out);
+            log.info("Transfer successful: senderWalletId={} ({}->{}), receiverWalletId={} ({}->{}), amount={}, refId={}", senderWallet.getId(), senderWallet_Before, senderWallet_After, receiverWallet.getId(), receiverWallet_Before, receiverWallet_After, amount, refId);
+
+            return TransactionResponse.fromTransaction(transaction_out);
+        }finally {
+            redisService.releaseLock(firstLock.toString());
+            redisService.releaseLock(secondLock.toString());
+        }
+
     }
 
     @Override
     public TransactionResponse withdraw(UUID userId, WithdrawRequest depReq) {
         log.info("Withdraw request received for userId={}, amount={}, refId={}", userId, depReq.getAmount(), depReq.getReferenceId());
         String refId = depReq.getReferenceId();
-        var existingTransaction = transactionRepo.findByReferenceId(refId);
-        if(existingTransaction.isPresent()) {
-            log.info("Duplicate withdraw detected for refId={}, returning existing transaction", refId);
-            return TransactionResponse.fromTransaction(existingTransaction.get());
+        TransactionResponse idemCheck = checkIdempotency(refId);
+        if(idemCheck!=null){
+            return idemCheck;
         }
         //get wallet
         Wallet wallet = walletService.getActiveWalletByUserId(userId);
@@ -182,4 +224,38 @@ public class TransactionServiceImpl implements TransactionService{
                 .build();
         return transaction;
     }
+
+    private TransactionResponse checkIdempotency(String refId){
+        try{
+            if(this.redisService.existIdempotencyKey(refId)){
+                return findExistingTransaction(refId);
+            }
+        }catch(Exception e){
+            log.info("Redis unavailable for idempotency check ,  failed for refId={}",refId);
+        }
+
+        Optional<Transaction> existingTransaction = transactionRepo.findByReferenceId(refId);
+        if(existingTransaction.isPresent())
+        {
+            log.info("Duplicate deposit detected for refId={}, returning existing transaction", refId);
+            return findExistingTransaction(refId);
+        }
+        return null;
+    }
+
+    private TransactionResponse findExistingTransaction(String refId){
+        Optional<Transaction> existingTransaction = transactionRepo.findByReferenceId(refId);
+        return existingTransaction.map(TransactionResponse::fromTransaction).orElse(null);
+    }
+
+    private void saveIdempotencyKey(String refId){
+        try{
+            this.redisService.setIfAbsent(refId,"processed",IdempotencyTimeOut);
+        }catch(Exception e){
+            log.warn("Could not store idempotency key "
+                    + "in Redis", e);
+
+        }
+    }
 }
+

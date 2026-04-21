@@ -18,6 +18,7 @@ public enum ErrorCode {
     WALLET_INACTIVE("WLT_002", "Wallet is not active", HttpStatus.FORBIDDEN),
     INSUFFICIENT_FUNDS("WLT_003", "Insufficient funds in wallet", HttpStatus.BAD_REQUEST),
     WALLET_ALREADY_EXISTS("WLT_004", "Wallet already exists for this user", HttpStatus.CONFLICT),
+    WALLET_BUSY("WLT_005","WAllet is busy",HttpStatus.CONFLICT),
 
 
     // Transaction

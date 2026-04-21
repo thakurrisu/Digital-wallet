@@ -36,10 +36,10 @@ public class RedisService {
                 redisTemplate.hasKey(key));
     }
 
-    public Boolean setIfAbsent(String refernceId , String value ,  long ttlMilisec) {
+    public Boolean setIfAbsent(String refernceId , String value ,  Duration ttlMilisec) {
 
         String key = IDEMPOTENCY_PREFIX+refernceId;
-        Boolean result =  redisTemplate.opsForValue().setIfAbsent(key , value,Duration.ofMillis(ttlMilisec));
+        Boolean result =  redisTemplate.opsForValue().setIfAbsent(key , value,ttlMilisec);
         return Boolean.TRUE.equals(result);
     }
 

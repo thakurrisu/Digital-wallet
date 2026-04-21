@@ -19,6 +19,23 @@ server:
 # SPRING CORE CONFIGURATION
 # ================================================================
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+        # WHY no password for local?
+        # Local Redis has no auth by default.
+        # Production: always set a password.
+        # password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+        # WHY timeout?
+        # If Redis is down, don't wait forever.
+        # 2 seconds → fail fast → fallback to DB
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
   jackson:
     time-zone: UTC
     # WHY UTC: ALWAYS store and transmit in UTC.
