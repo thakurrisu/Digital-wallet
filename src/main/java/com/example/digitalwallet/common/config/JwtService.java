@@ -19,15 +19,17 @@ import java.util.UUID;
 @Slf4j
 public class JwtService {
 
-    private static final String SECRET_HEX =
+    private static final String SECRET_HEX = System.getenv("JWT_SECRET") != null
+            ? System.getenv("JWT_SECRET") :
             "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
 
-    private static final long JWT_EXPIRATION = 86400000L; // 24 hours in ms
+    private static final long JWT_EXPIRATION = System.getenv("JWT_EXPIRATION") != null
+            ? Long.parseLong(System.getenv("JWT_EXPIRATION")) : 86400000L; // 24 hours in ms
 
     private  SecretKey secretKey;
 
     public JwtService() {
-        this.secretKey = Keys.hmacShaKeyFor(
+        this.secretKey =  Keys.hmacShaKeyFor(
                 hexStringToByteArray(SECRET_HEX));
     }
 

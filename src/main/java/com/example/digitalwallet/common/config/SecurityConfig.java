@@ -22,10 +22,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-// WHY @Configuration?
-// Tells Spring: this class contains @Bean definitions.
-// Spring reads it at startup and registers all beans.
-// Different from @Component — specifically for config classes.
 
 @EnableWebSecurity
 // WHY @EnableWebSecurity?
@@ -184,9 +180,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(
-                List.of("http://localhost:5173",
-                        "http://localhost:5174"));
+        String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
+        if(allowedOrigins!=null) {
+            config.setAllowedOrigins(
+                    List.of(allowedOrigins.split(",")));
+        }else{
+            config.setAllowedOrigins(
+                    List.of("http://localhost:5173",
+                            "http://localhost:5174"));
+        }
         config.setAllowedMethods(
                 List.of("GET", "POST", "PUT",
                         "PATCH", "DELETE", "OPTIONS"));

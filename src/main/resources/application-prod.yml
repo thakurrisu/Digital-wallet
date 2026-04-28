@@ -1,0 +1,60 @@
+server:
+  port: ${PORT:8080}
+
+
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: digital-wallet
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: WalletHikariPool
+      maximum-pool-size: 5
+
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: false
+
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  data:
+    redis:
+      url: ${REDIS_URL}
+
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 5
+          max-idle: 3
+          min-idle: 1
+
+  jackson:
+    time-zone: UTC
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+
+logging:
+  level:
+    com.digitalwallet: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
