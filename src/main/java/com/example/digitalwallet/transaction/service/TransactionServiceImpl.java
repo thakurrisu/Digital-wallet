@@ -11,6 +11,8 @@ import com.example.digitalwallet.transaction.model.Transaction;
 import com.example.digitalwallet.transaction.model.TransactionStatus;
 import com.example.digitalwallet.transaction.model.TransactionType;
 import com.example.digitalwallet.transaction.repo.TransactiontRepository;
+import com.example.digitalwallet.user.model.User;
+import com.example.digitalwallet.user.repo.UserRepository;
 import com.example.digitalwallet.wallet.dto.WalletResponse;
 import com.example.digitalwallet.wallet.model.Wallet;
 import com.example.digitalwallet.wallet.service.WalletService;
@@ -36,14 +38,17 @@ public class TransactionServiceImpl implements TransactionService{
 
     private final RedisService redisService;
 
+    private final UserRepository userRepository;
+
     private static final Duration IdempotencyTimeOut = Duration.ofHours(24);
 
     private static final Duration LOCK_TTL = Duration.ofSeconds(5);
 
-    public TransactionServiceImpl(TransactiontRepository transactionRepo,WalletService walletService , RedisService redisService) {
+    public TransactionServiceImpl(TransactiontRepository transactionRepo,WalletService walletService , RedisService redisService , UserRepository userRepository) {
         this.transactionRepo = transactionRepo;
         this.walletService=walletService;
         this.redisService=redisService;
+        this.userRepository=userRepository;
     }
 
     @Override
@@ -74,7 +79,7 @@ public class TransactionServiceImpl implements TransactionService{
         // under concurrent transactions
        // Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
         BigDecimal balance_after = balance_before.add(depReq.getAmount());
-        Transaction transaction =buildTransaction(wallet,depReq.getAmount(),TransactionStatus.PENDING,balance_before,balance_after,
+        Transaction transaction =buildTransaction(wallet,depReq.getAmount(),balance_before,balance_after,
                 TransactionType.DEPOSIT,refId,"Deposit",null);
         transactionRepo.save(transaction);
         saveIdempotencyKey(refId);
@@ -84,7 +89,6 @@ public class TransactionServiceImpl implements TransactionService{
 
 
     @Override
-    @Transactional(readOnly = true)
     public TransactionResponse transfer(UUID userId, TransferRequest depReq) {
         log.info("Transfer request received for userId={}, amount={}", userId, depReq.getAmount());
         String refId = depReq.getReferenceId();
@@ -99,7 +103,15 @@ public class TransactionServiceImpl implements TransactionService{
         Wallet senderWallet = walletService.getActiveWalletByUserId(userId);
         BigDecimal senderWallet_Before = senderWallet.getBalance();
 
-        Wallet receiverWallet = walletService.getActiveWalletById(depReq.getReceiverWalletId());
+        String receiverEmail = depReq.getReceiverEmail().trim().toLowerCase();
+        User receiver = userRepository
+                .findByEmailAndIsDeletedFalse(receiverEmail)
+                .orElseThrow(() -> {
+                    log.warn("Transfer failed - receiver not found. email={}", receiverEmail);
+                    return new WalletException(ErrorCode.USER_NOT_FOUND, "Receiver not found for email: " + receiverEmail);
+                });
+
+        Wallet receiverWallet = walletService.getActiveWalletByUserId(receiver.getId());
         BigDecimal receiverWallet_Before = receiverWallet.getBalance();
 
         UUID firstLock;
@@ -137,18 +149,20 @@ public class TransactionServiceImpl implements TransactionService{
 
             log.info("Initiating transfer: senderWalletId={}, receiverWalletId={}, amount={}", senderWallet.getId(), receiverWallet.getId(), amount);
             walletService.debit(senderWallet.getId(),amount);
-            walletService.credit(depReq.getReceiverWalletId(),depReq.getAmount());
+            walletService.credit(receiverWallet.getId(),depReq.getAmount());
 
-            BigDecimal senderWallet_After = receiverWallet_Before.subtract(depReq.getAmount());
+            BigDecimal senderWallet_After = senderWallet_Before.subtract(depReq.getAmount());
             BigDecimal receiverWallet_After = receiverWallet_Before.add(depReq.getAmount());
 
-            Transaction transaction_out =buildTransaction(senderWallet,depReq.getAmount(),TransactionStatus.PENDING,senderWallet_Before,senderWallet_After,
-                    TransactionType.TRANSFER_OUT,refId,"Credit",depReq.getReceiverWalletId());
+            Transaction transaction_out =buildTransaction(senderWallet,depReq.getAmount(),senderWallet_Before,senderWallet_After,
+                    TransactionType.TRANSFER_OUT,refId,"Credit",receiverWallet.getId());
 
-            Transaction transaction_in =buildTransaction(receiverWallet,depReq.getAmount(),TransactionStatus.PENDING,receiverWallet_Before,receiverWallet_After,
-                    TransactionType.TRANSFER_IN,refId,"Deposit",senderWallet.getId());
+            Transaction transaction_in =buildTransaction(receiverWallet,depReq.getAmount(),receiverWallet_Before,receiverWallet_After,
+                    TransactionType.TRANSFER_IN,refId + "-in","Deposit",senderWallet.getId());
             transactionRepo.save(transaction_in);
             transactionRepo.save(transaction_out);
+            saveIdempotencyKey(refId);
+            saveIdempotencyKey(refId + "-in");
             log.info("Transfer successful: senderWalletId={} ({}->{}), receiverWalletId={} ({}->{}), amount={}, refId={}", senderWallet.getId(), senderWallet_Before, senderWallet_After, receiverWallet.getId(), receiverWallet_Before, receiverWallet_After, amount, refId);
 
             return TransactionResponse.fromTransaction(transaction_out);
@@ -180,7 +194,7 @@ public class TransactionServiceImpl implements TransactionService{
         //get sanpshot after
        // Wallet updatedWallet = walletService.getActiveWalletByUserId(userId);
         BigDecimal balance_after = balance_before.subtract(depReq.getAmount());
-        Transaction transaction =buildTransaction(wallet,depReq.getAmount(),TransactionStatus.PENDING,balance_before,balance_after,
+        Transaction transaction =buildTransaction(wallet,depReq.getAmount(),balance_before,balance_after,
                 TransactionType.WITHDRAW,refId,"credit",null);
         transactionRepo.save(transaction);
         log.info("Withdraw successful for userId={}, walletId={}, amount={}, balanceBefore={}, balanceAfter={}", userId, wallet.getId(), depReq.getAmount(), balance_before, balance_after);
@@ -207,13 +221,13 @@ public class TransactionServiceImpl implements TransactionService{
         return pagedTransaction.map(transaction -> TransactionResponse.fromTransaction(transaction));
     }
 
-    private Transaction buildTransaction(Wallet wallet , BigDecimal amount,TransactionStatus transactionStatus
+    private Transaction buildTransaction(Wallet wallet , BigDecimal amount
             ,BigDecimal balance_before,BigDecimal balance_after,TransactionType transactionType,String refId,String desc,UUID relatedWalletId)
     {
         Transaction transaction =  Transaction.builder()
                 . wallet(wallet)
                 .amount(amount)
-                .transactionStatus(transactionStatus)
+                .transactionStatus(TransactionStatus.SUCCESS)
                 .transactionType(transactionType)
                 .balanceBefore(balance_before)
                 .balanceAfter(balance_after)

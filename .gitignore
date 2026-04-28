@@ -31,3 +31,59 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Eclipse ###
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+
+### Logs ###
+*.log
+logs/
+spring.log
+
+### OS files ###
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+### Environment / secrets ###
+.env
+.env.*
+*.env
+application-local.yml
+application-local.properties
+application-secret.yml
+application-secret.properties
+application-dev-local.yml
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+
+### Local databases / caches ###
+*.mv.db
+*.trace.db
+*.h2.db
+*.sqlite
+*.sqlite3
+.flattened-pom.xml
+
+### Node (root-level stray files; frontend has its own ignore) ###
+/node_modules/
+/package-lock.json
+/yarn.lock
+/pnpm-lock.yaml
+
+### Claude Code local config ###
+.claude/

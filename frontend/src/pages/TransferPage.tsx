@@ -5,8 +5,10 @@ import api from '../api/axios';
 import Spinner from '../components/Spinner';
 import Toast, { ToastMessage } from '../components/Toast';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const TransferPage = () => {
-  const [receiverWalletId, setReceiverWalletId] = useState('');
+  const [receiverEmail, setReceiverEmail] = useState('');
   const [amount, setAmount] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,8 +17,9 @@ const TransferPage = () => {
 
   const handleReview = (e: FormEvent) => {
     e.preventDefault();
-    if (!receiverWalletId.trim()) {
-      setToast({ id: Date.now(), kind: 'error', text: 'Enter receiver wallet ID' });
+    const email = receiverEmail.trim().toLowerCase();
+    if (!email || !EMAIL_REGEX.test(email)) {
+      setToast({ id: Date.now(), kind: 'error', text: 'Enter a valid receiver email' });
       return;
     }
     const amt = parseFloat(amount);
@@ -33,7 +36,7 @@ const TransferPage = () => {
       await api.post('/v1/transactions/transfer', {
         amount: parseFloat(amount),
         referenceId: uuidv4(),
-        receiverWalletId,
+        receiverEmail: receiverEmail.trim().toLowerCase(),
       });
       setToast({ id: Date.now(), kind: 'success', text: 'Transfer successful!' });
       setTimeout(() => navigate('/'), 800);
@@ -57,7 +60,7 @@ const TransferPage = () => {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Send money</h1>
-        <p className="text-sm text-gray-500">Transfer to another wallet</p>
+        <p className="text-sm text-gray-500">Transfer to another user by email</p>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -65,15 +68,16 @@ const TransferPage = () => {
           <form onSubmit={handleReview} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Receiver wallet ID
+                Receiver email
               </label>
               <input
-                type="text"
+                type="email"
                 required
-                value={receiverWalletId}
-                onChange={(e) => setReceiverWalletId(e.target.value)}
+                autoComplete="email"
+                value={receiverEmail}
+                onChange={(e) => setReceiverEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="e.g. 1234"
+                placeholder="user@example.com"
               />
             </div>
             <div>
@@ -102,8 +106,8 @@ const TransferPage = () => {
               <p className="text-sm text-gray-500">You are sending</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">{formattedAmount()}</p>
               <div className="mt-3 text-sm text-gray-600">
-                to wallet{' '}
-                <span className="font-mono font-semibold text-gray-900">{receiverWalletId}</span>
+                to{' '}
+                <span className="font-mono font-semibold text-gray-900">{receiverEmail}</span>
               </div>
             </div>
 

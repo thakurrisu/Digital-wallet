@@ -36,8 +36,11 @@ public class RazorpayPaymentGateway implements PaymentGateway {
 
     @Override
     public GatewayorderResult createOrder(BigDecimal amount, String currency, String receipt) {
+        // Razorpay expects amount in the smallest currency unit (paise for INR).
+        long amountInPaise = amount.multiply(BigDecimal.valueOf(100)).longValueExact();
+
         JSONObject orderRequest = new JSONObject();
-        orderRequest.put("amount",amount);
+        orderRequest.put("amount", amountInPaise);
         orderRequest.put("currency",currency);
         orderRequest.put("receipt",receipt);
         orderRequest.put("payment_capture",1); // 1 - auto Capture

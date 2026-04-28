@@ -1,13 +1,13 @@
 package com.example.digitalwallet.transaction.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
@@ -22,6 +22,7 @@ public class TransferRequest {
     @NotBlank(message = "Reference ID is required")
     private String referenceId;
 
-    @NotNull(message = "Receiver wallet ID is required")
-    private UUID receiverWalletId;
+    @NotBlank(message = "Receiver email is required")
+    @Email(message = "Receiver email must be a valid email")
+    private String receiverEmail;
 }

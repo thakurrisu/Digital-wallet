@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -75,7 +76,7 @@ public class PaymentServiceImp implements PaymentService{
 
         PaymentOrder paymentOrder = PaymentOrder.builder()
                 .gatewayOrderId(gatewayorderResult.getGatewayOrderId())
-                .amount(request.getAmount())
+                .amount (request.getAmount())
                 .user(user)
                 .wallet(wallet)
                 .build();

@@ -41,12 +41,16 @@ const AddMoneyPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const pollStatus = async (paymentId: string | number) => {
+  const pollStatus = async (paymentOrderId: string) => {
+    if (!paymentOrderId) {
+      setToast({ id: Date.now(), kind: 'error', text: 'Missing payment id from server response' });
+      return;
+    }
     setPolling(true);
     const maxAttempts = 20;
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        const res = await api.get<ApiResponse<Payment>>(`/v1/payments/${paymentId}/status`);
+        const res = await api.get<ApiResponse<Payment>>(`/v1/payments/${paymentOrderId}/status`);
         const status = res.data.data.status;
         if (status === 'SUCCESS') {
           setToast({
@@ -110,7 +114,7 @@ const AddMoneyPage = () => {
         prefill: { name: user?.name, email: user?.email },
         theme: { color: '#059669' },
         handler: () => {
-          pollStatus(init.paymentId);
+          pollStatus(init.paymentOrderId);
         },
         modal: {
           ondismiss: () => {

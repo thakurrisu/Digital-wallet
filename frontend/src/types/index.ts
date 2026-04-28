@@ -85,7 +85,7 @@ export interface Transaction {
 export type PaymentStatus = 'CREATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | string;
 
 export interface PaymentInitiateResponse {
-  paymentId: string | number;
+  paymentOrderId: string;
   gatewayOrderId: string;
   keyId: string;
   amount: number;

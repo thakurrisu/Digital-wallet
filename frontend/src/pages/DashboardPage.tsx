@@ -72,7 +72,7 @@ const DashboardPage = () => {
     }
     setWithdrawLoading(true);
     try {
-      await api.post('/v1/transactions/withdraw', {
+      await api.post('/v1/transactions/credit', {
         amount,
         referenceId: uuidv4(),
       });
