@@ -50,7 +50,7 @@ spring:
   # DATABASE ? PostgreSQL
   # ================================================================
   datasource:
-    url: jdbc:postgresql://wallet_user:CLTzx50bzAesucOHRxZoHVJLts6SHjgL@dpg-d7ogjv28qa3s738uu4gg-a/digital_wallet_nrgi
+    url: jdbc:postgresql://dpg-d7ogjv28qa3s738uu4gg-a/digital_wallet_nrgi
     username: wallet_user
     password: CLTzx50bzAesucOHRxZoHVJLts6SHjgL
     driver-class-name: org.postgresql.Driver
