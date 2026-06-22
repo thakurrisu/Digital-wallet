@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService{
 
             User user = User.builder().userName(request.getName())
                             .email(email)
-                             .password(pswdEncode.encode(request.getPassword().toLowerCase().trim()))
+                             .password(pswdEncode.encode(request.getPassword()))
                                 .build();
             User savedUser = userRepository.save(user);
             walletService.createWallet(savedUser);
